@@ -55,6 +55,20 @@ video_codec = "libx264"
 fps = 30
 
 
+def normalize_subtitle_background_color(background_color):
+    # Keep the legacy bool contract, but make empty/transparent-like values render
+    # without a visible box.
+    if isinstance(background_color, bool):
+        return "#000000" if background_color else None
+    if background_color is None:
+        return None
+
+    normalized_color = str(background_color).strip()
+    if not normalized_color or normalized_color.lower() in {"transparent", "none"}:
+        return None
+    return normalized_color
+
+
 def get_ffmpeg_binary():
     # 优先复用配置里显式指定的 ffmpeg，可避免不同环境下 PATH 不一致。
     return os.environ.get("IMAGEIO_FFMPEG_EXE") or "ffmpeg"
@@ -458,14 +472,6 @@ def generate_video(
 
         logger.info(f"  ⑤ font: {font_path}")
 
-    def resolve_subtitle_background_color():
-        # 兼容历史参数：API 里 `text_background_color` 既可能是布尔值，
-        # 也可能是实际颜色字符串。统一在这里归一化，避免把 True/False
-        # 直接传给 TextClip 后出现不可预期的渲染结果。
-        if isinstance(params.text_background_color, bool):
-            return "#000000" if params.text_background_color else None
-        return params.text_background_color
-
     def create_text_clip(subtitle_item):
         params.font_size = int(params.font_size)
         params.stroke_width = int(params.stroke_width)
@@ -491,7 +497,9 @@ def generate_video(
             font=font_path,
             font_size=params.font_size,
             color=params.text_fore_color,
-            bg_color=resolve_subtitle_background_color(),
+            bg_color=normalize_subtitle_background_color(
+                params.text_background_color
+            ),
             stroke_color=params.stroke_color,
             stroke_width=params.stroke_width,
             interline=interline,

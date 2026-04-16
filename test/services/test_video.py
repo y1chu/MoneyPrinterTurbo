@@ -8,7 +8,7 @@ from moviepy import (
 )
 # add project root to python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from app.models.schema import MaterialInfo
+from app.models.schema import MaterialInfo, SubtitleRequest, VideoParams
 from app.services import video as vd
 from app.utils import utils
 
@@ -80,6 +80,21 @@ class TestVideoService(unittest.TestCase):
             self.assertIn("\n", wrapped_text_zh)
         except Exception as e:
             self.fail(f"test wrap_text failed: {str(e)}")
+
+    def test_normalize_subtitle_background_color(self):
+        self.assertEqual(vd.normalize_subtitle_background_color(True), "#000000")
+        self.assertIsNone(vd.normalize_subtitle_background_color(False))
+        self.assertIsNone(vd.normalize_subtitle_background_color(None))
+        self.assertIsNone(vd.normalize_subtitle_background_color(""))
+        self.assertIsNone(vd.normalize_subtitle_background_color(" transparent "))
+        self.assertIsNone(vd.normalize_subtitle_background_color("none"))
+        self.assertEqual(
+            vd.normalize_subtitle_background_color("#123456"), "#123456"
+        )
+
+    def test_subtitle_background_defaults_are_transparent(self):
+        self.assertFalse(VideoParams(video_subject="test").text_background_color)
+        self.assertFalse(SubtitleRequest(video_script="test").text_background_color)
 
 if __name__ == "__main__":
     unittest.main() 
